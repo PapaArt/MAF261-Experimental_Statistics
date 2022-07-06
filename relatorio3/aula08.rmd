@@ -1,0 +1,455 @@
+---
+title: "Relatório 3 - Estatística"
+subtitle: "Fazendo algumas análises em R"
+date: "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Sumário"
+output: 
+  html_document:
+    toc: true # table of content true
+    toc_depth: 2  # upto three depths of headings (specified by #, ## and ###)
+    number_sections: true  ## if you want number sections at each table headerK
+    theme: cosmo  # many options for theme, this one is my favorite.
+    highlight: zenburn  # specifies the syntax highlighting style
+    #css: my.css   # you can add your custom css, should be in same folder
+editor_options: 
+  chunk_output_type: console
+  markdown: 
+    wrap: 72
+---
+
+```{r setup opts_chunk, include=FALSE}
+# chunk options:
+knitr::opts_chunk$set(echo = T, include = T, eval=T,
+                      warning = F, error = T,
+                      message = F, out.width = "75%",
+                      fig.align = 'center',
+                      results = "markup")
+```
+
+------------------------------------------------------------------------
+
+# Dados
+
+Lendo o conjunto de dados utilizado durante a atividade 
+
+```{r}
+df <- read.csv("~/Downloads/dados_atividade1.xlsx - Planilha1.csv")
+head(df)
+```
+
+Visualização do conjunto de dados a ser utilizado. Consiste em um coluna de producao, uma de praga e uma de fertilizante. A ideia e realizar análises com base nos fertilizantes, que serão os diferentes tratamentos. 
+
+```{r, results="asis"}
+library("daewr")#use install.packages("daewr") se necessario
+library("kableExtra")# para usar a funcao kable
+kable(df, align='c')
+```
+
+# Descritivas
+
+Realizando algumas análises descritivas dos dados
+
+- Para a variavel de produção:
+
+```{r}
+library(tidyverse)
+df |> group_by(Fertilizante) |> 
+  summarise(media=mean(Producao), desv.pad=sd(Praga))|>
+  kable(align='c', digits=2)
+```
+
+* Aparentemente existe alguma diferença entre os tratamentos. Ao se observar o gráfico abaixo fica ainda mais claro, a média entre os experimentos estão bem diferentes. O teste ANOVA irá dizer se existe alguma diferença significativa posteriormente. 
+
+```{r}
+df |> ggplot(aes(x=Fertilizante, y=Producao, color=Fertilizante)) + 
+  geom_boxplot(outlier.shape=NA) +
+  geom_jitter(width=0.2)
+```
+
+*fazer também para os dados binarios*
+
+# ANOVA
+
+Como queremos verificar se existe alguma diferença entre os tratamentos, o que desejamos testar é: 
+$$H_0: \mu_{A} = \mu_{B} = \mu_{C} = \mu_{D}$$
+Ou seja, a hipótese nula dos dados é que todas as médias para os diferentes fertilizantes são iguais. Aplicando a anova: 
+
+```{r}
+m <- aov(Producao ~ Fertilizante, data = df)
+summary(m) 
+```
+
+# Pressupostos
+
+Primeiro, podemos ver como os resíduos se comportam.
+
+O modelo que estamos considerando é: $$y_{ij} = \mu_i + \epsilon_{ij}$$
+Desse modo, o resíduo é definido por
+$$e_{ij} = y_{ij} - \bar{y}_{i\cdot}$$
+
+```{r}
+residuo <- m$residuals
+dado <- data.frame(id=1:12, residuo=residuo)
+kable(dado)
+```
+
+## Resíduo versus tratamento
+
+```{r}
+plot(m, which=5, pch=19) 
+```
+
+Desejamos que os resíduos sejam bem comportandos, simétricos em torno de
+uma média (normal) e que tenha mesma variância dentre os três
+tratamentos.
+
+Logo, é esperado que não haja nenhum padrão a não ser um comportamento
+aleatório.
+
+## Resíduo versus valor ajustado
+
+Como o modelo é
+$$y_{ij}=\mu_i+\epsilon_{ij},\;\;\;\;\; \epsilon_{ij}\sim N(0, \sigma^2)$$
+então o valor ajustado é $$\hat{y}_{ij}=\bar{y}_{i\cdot}$$
+
+```{r, results='asis'}
+library(tidyverse)
+df |> group_by(Fertilizante) |> 
+  summarise(media = mean(Producao), desv.pad = sd(Producao)) |>
+  kable(align='c', digits=2)
+```
+
+```{r}
+plot(m, which=1, pch=19)
+```
+
+## Normalidade dos resíduos
+
+Um outro pressuposto importante é a normalidade dos resíduos, já que é
+pressuposto que $$\epsilon_{ij}\sim N(0, \sigma^2).$$ Uma ferramenta
+muito utilizada é o qqplot, o gráfico quantil x quantil.
+
+```{r}
+plot(m, which=2, pch = 19)
+```
+
+Que muitas vezes é plotado junto com um "envelope".
+
+```{r}
+install.packages("car")
+library("car") #se necessário: install.packages("car")
+qqPlot(m$residuals, pch=19, col.lines="darkred", id=F)
+```
+
+## Resíduo versus ordem de coleta dos dados
+
+É útil também verificar se há um padrão bem definido para verificar se o
+resíduo é aleatório através do gráfico de dispersão resíduo *versus*
+ordem de coleta.
+
+```{r}
+plot(residuals(m) ~ ID, main="Resíduo versus ordem de coleta", font.main=1,data=df)
+abline(h = 0, lty = 2)
+```
+
+# Transformações nos dados
+
+Quando a normalidade dos dados falhar, é possível fazer alguma
+transformação na resposta.
+
+Além disso, se é sabido que os dados não seguem uma distribuição normal,
+como binomial, Poisson ou lognormal, então a homoscedasticidade pode
+falhar (desvio padrão não ser o mesmo dentro de cada tratamento).
+
+Por exemplo, se $$Y\sim Binomial(n;p)$$ então, pelo teorema do limite
+central, $$\bar{Y} \sim N(np; np(1-p))$$ e tanto $n$ quanto a
+probabilidade de sucesso $p$ podem ser diferentes entre os tratamentos.
+
+## Transformações para a normalidade
+
+Observe abaixo o comportamento de duas transformações, a raiz quadrada e
+o log da resposta.
+
+```{r}
+set.seed(123)
+x1 <- rgamma(100, shape = 1, scale = 3)
+x2 <- sqrt(x1); x3 <- log(x1)
+qqPlot(x1, id=F, main = "QQ plot para X")
+qqPlot(x2, id=F, main = expression(paste("QQ plot para ",sqrt(X))))
+qqPlot(x3, id=F, main = expression(paste("QQ plot para ",ln(X))))
+```
+
+```{r}
+library(ggpubr)
+ggqqplot(x1)
+ggqqplot(x2)
+ggqqplot(x3)
+```
+
+#### Testando a normalidade {.unnumbered}
+
+**Shapiro-Wilks**
+
+```{r}
+shapiro.test(x1)
+shapiro.test(x2)
+shapiro.test(x3)
+```
+
+**Kolmogorov-Smirnov**
+
+```{r}
+ks.test(x1, 'pnorm')
+ks.test(x2, 'pnorm')
+ks.test(x3, 'pnorm')
+```
+
+## Utilizando um pacote {.unnumbered}
+
+```{r}
+library("bestNormalize")
+bestNormalize(x1) #quanto menor, mais normal
+```
+
+```{r, out.width="95%"}
+xt <- bestNormalize(x1)$x.t
+```
+
+```{r}
+qqPlot(xt, id=F, main = expression(paste("QQ plot para Yeo-Johnson de X")))
+shapiro.test(xt)
+ks.test(xt, 'pnorm')
+```
+
+## Transformações para estabilizar a variância
+
+| Distribuição da resposta | Transformação                |
+|--------------------------|------------------------------|
+| Binomial                 | $sen^{-1}(\sqrt{y/n})$       |
+| Poisson                  | $\sqrt{y}$ ou $\sqrt{y+1/2}$ |
+| Lognormal                | $log(y)$                     |
+
+# Testes para homogeneidade na variância
+
+### F
+
+```{r}
+var.test(height ~ time, data=bread)
+```
+
+#### Par a par {.unnumbered}
+
+**time 35 versus 40**
+
+```{r}
+var.test(height ~ time, data=bread[bread$time!="45",])
+```
+
+**time 35 versus 45**
+
+```{r}
+var.test(height ~ time, data=bread[bread$time!="40",])
+```
+
+**time 40 versus 45**
+
+```{r}
+var.test(height ~ time, data=bread[bread$time!="35",])
+```
+
+### Bartlett {.unnumbered}
+
+```{r}
+bartlett.test(height ~ time, data=bread)
+```
+
+### Levene {.unnumbered}
+
+É uma alternativa ao Bartlett *menos sensível à desvios da normalidade*.
+
+```{r}
+leveneTest(height ~ time, data=bread)
+```
+
+### Fligner {.unnumbered}
+
+É uma alternativa **não paramétrica** usado quando os dados são não
+normais.
+
+```{r}
+fligner.test(height ~ time, data=bread) 
+```
+
+<!-- ------------------------------------------------------------- -->
+
+------------------------------------------------------------------------
+
+# AULA 21/06/2022 {.unnumbered}
+
+------------------------------------------------------------------------
+
+<!-- ------------------------------------------------------------- -->
+
+# Dados heteroscedásticos
+
+------------------------------------------------------------------------
+
+## ANOVA por meio de um modelo linear
+
+Um modelo linear busca ajustar uma relação linear entre uma variável
+**resposta** $y$ e o tratamento $x$.
+
+Desse modo, se temos $I$ tratamentos, podemos definir $I-1$ variáveis
+indicadoras:
+
+$x_1 = 1,$ se o tratamento é o 1 e $x_1 = 0,$ se não é o tratamento 1;
+
+$x_2 = 1,$ se o tratamento é o 2 e $x_2 = 0,$ se não é o tratamento 1;
+
+...
+
+$x_{I-1} = 1,$ se o tratamento é o I-1 e $x_{I-1} = 0,$ se não é o
+tratamento 1.
+
+E desse modo, se todos forem iguais a zero, se trata do tratamento $I$.
+
+Então:
+
+-   se uma unidade está sob o tratamento 1, então
+    $$x_1=1, x_2=0, x_3=0, ..., x_{I-1}=0$$
+-   se está sob o tratamento 2, então
+    $$x_1=0, x_2=1, x_3=0, ..., x_{I-1}=0$$ ...
+-   se está sob o tratamento $I-1$, então
+    $$x_1=0, x_2=0, x_3=0, ..., x_{I-1}=1$$
+-   e se está sob o tratamento $I$, então
+    $$x_1=0, x_2=0, x_3=0, ..., x_{I-1}=0$$
+
+Assim, o **modelo linear** pode ser escrito como
+$$y = \beta_0 + \beta_1x_1 + \beta_2x_2 + \cdots + \beta_px_p + \epsilon$$
+em que $\epsilon \sim N(0, \sigma^2)$.
+
+Assim,
+
+$y_{ij} = \beta_0 + \beta_i + \epsilon_{ij}, i=1, 2, ..., I-1$
+
+$y_{Ij} = \beta_0 + \epsilon_{Ij}$
+
+Por outro lado, o modelo para o DIC é $$y_{ij}=\mu_i+\epsilon_{ij}$$
+
+Assim,
+
+$\mu_i=\beta_0+\beta_i, i=1, 2, ..., I-1$
+
+$\mu_I=\beta_0$
+
+Desse modo, a hipótese nula da ANOVA, que é
+$$H_0: \mu_1=\mu_2=\cdots = \mu_I$$ é equivalente a
+$$H_0: \beta_1=\beta_2=\cdots =\beta_{I-1}=0$$
+
+```{r}
+m1a <- lm(height ~ time, data = bread)
+anova(m1a)
+```
+
+Que comparando com os comandos que fizemos anteriormente, notamos que se
+trata da mesma análise.
+
+```{r}
+m1b <- aov(height ~ time, data = bread)
+summary(m1b)
+```
+
+As estimativas dos **coeficientes da regressão** $\beta$, junto com
+outras informações, são dadas por:
+
+```{r}
+summary(m1a)
+```
+
+------------------------------------------------------------------------
+
+## Utilizando uma transformação nos dados
+
+Vamos utilizar uma transformação nos dados (para normalidade) e checar
+se a variância fica mais estabilizada.
+
+**Desvio padrão em cada grupo**
+
+```{r}
+std <- tapply(bread$height, bread$time, sd)
+std
+```
+
+**Transformação Box-Cox**
+
+```{r}
+bread <- bread |> mutate(height_t = boxcox(height)$x.t)
+std <- tapply(bread$height_t, bread$time, sd)
+std
+```
+
+**Desvio padrão após a transformação**
+
+```{r}
+m2 <- aov(height_t ~ time, data = bread)
+summary(m2)
+```
+
+------------------------------------------------------------------------
+
+## ANOVA ponderada
+
+O método utilizado aqui é o de mínimos quadrados, como é feito com o
+modelo comum.
+
+A diferença é que é utilizado o método de mínimos quadrados ponderado.
+
+```{r}
+std <- tapply(bread$height, bread$time, sd)
+std
+pesos <- rep(1/std, each=4)
+pesos
+
+m2 <- lm(height ~ time, weights=pesos, data=bread)
+anova(m2)
+```
+
+------------------------------------------------------------------------
+
+# Dados com outras distribuições
+
+## Simulando alguns dados DIC com resposta binária
+
+```{r}
+(trat <- rep(c("A", "B", "C", "D"), each=20))
+(x <- model.matrix( ~ trat))
+beta <- c(1, -3, -1.5, 0)
+z <- x %*% beta
+(p <- exp(z)/(1+exp(z)))
+
+set.seed(12345)
+y <- NULL
+for(i in 1:length(trat)){
+  y[i] <- rbinom(1, 1, p[i])
+}
+```
+
+```{r}
+dados <- data.frame(y, trat)
+dados
+```
+
+## Regressão Logística
+
+```{r}
+modelo <- glm(y ~ trat, data=dados, family=binomial(link = "logit"))
+summary(modelo)
+```
+
+## ANOVA
+
+Para fazer uma anova, queremos testar
+
+```{r}
+anova(modelo, test="Chisq")
+```
+
