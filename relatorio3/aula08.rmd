@@ -32,7 +32,12 @@ knitr::opts_chunk$set(echo = T, include = T, eval=T,
 Lendo o conjunto de dados utilizado durante a atividade 
 
 ```{r}
-df <- read.csv("~/Downloads/dados_atividade1.xlsx - Planilha1.csv")
+#df <- read.csv("~/Downloads/dados_atividade1.xlsx - Planilha1.csv")
+#head(df)
+```
+
+```{r}
+df <- read.csv("~/GitHub/MAF261-Experimental_Statistics/relatorio3/dados_atividade1.xlsx - Planilha1.csv")
 head(df)
 ```
 
@@ -65,7 +70,18 @@ df |> ggplot(aes(x=Fertilizante, y=Producao, color=Fertilizante)) +
   geom_jitter(width=0.2)
 ```
 
-*fazer também para os dados binarios*
+# ANOVA para dados binários
+## Regressão Logística
+```{r}
+modelo <- glm(Praga ~ Fertilizante, data = df, family = binomial(link = "logit"))
+summary(modelo)
+```
+
+## ANOVA
+```{r}
+anova(modelo, test = "Chisq")
+```
+
 
 # ANOVA
 
