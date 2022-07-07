@@ -29,26 +29,29 @@ knitr::opts_chunk$set(echo = T, include = T, eval=T,
 
 # Dados
 
-Lendo o conjunto de dados utilizado durante a atividade 
+A seguir é feita a leitura do conjunto de dados a ser utilizado na atividade. Os dados são referentes ao contexto de aplicação de fertilantes em produções e a possível presença de pragas. 
 
 ```{r}
 df <- read.csv("~/Downloads/dados_atividade1.xlsx - Planilha1.csv")
 head(df)
 ```
 
-Visualização do conjunto de dados a ser utilizado. Consiste em um coluna de producao, uma de praga e uma de fertilizante. A ideia e realizar análises com base nos fertilizantes, que serão os diferentes tratamentos. 
+A partir da visualização do conjunto de dados a ser utilizado, é possível observar que o dataset é composto por 4 colunas: uma para o id (ID) da instância do dado,  uma referente ao valor da produção (Producao), uma para indicar se houve a presença ou não de pragas (Praga) naquela produção  e uma para informar qual o tipo de fertilizante empregado.
+
+Tem-se por intuito, inicialmente, realizar análises com base nos fertilizantes para os valores de produção, logo que há diferentes tratamentos sendo aplicados. 
 
 ```{r, results="asis"}
-library("daewr")#use install.packages("daewr") se necessario
-library("kableExtra")# para usar a funcao kable
+#install.packages("daewr")
+library("daewr")
+library("kableExtra")
 kable(df, align='c')
 ```
 
 # Descritivas
 
-Realizando algumas análises descritivas dos dados
+De maneira a se desenvolver um entendimento inicial dos dados dispostos, foi realizada algumas análises descritivas dos dados, apresentadas a seguir.
 
-- Para a variavel de produção:
+- Referente a variável de produção:
 
 ```{r}
 library(tidyverse)
@@ -57,7 +60,11 @@ df |> group_by(Fertilizante) |>
   kable(align='c', digits=2)
 ```
 
-* Aparentemente existe alguma diferença entre os tratamentos. Ao se observar o gráfico abaixo fica ainda mais claro, a média entre os experimentos estão bem diferentes. O teste ANOVA irá dizer se existe alguma diferença significativa posteriormente. 
+* A partir das informações das médias das produções para cada tipo de tratamento expostas acima, tem-se uma suspeita de que, aparentemente, existe alguma diferença entre os tratamentos.
+
+* Ao se observar o gráfico abaixo, tal suspeita torna-se mais concreta, visto que as médias entre os experimentos estão bem diferentes. É possível observar que o tratamento B apresenta valores de produção superiores aos restantes, enquanto o tratamento C consiste dos valores mais baixos.
+
+* Uma maneira de identificar se existe alguma diferença significativa entre as médias é por meio da realização de um teste ANOVA.
 
 ```{r}
 df |> ggplot(aes(x=Fertilizante, y=Producao, color=Fertilizante)) + 
@@ -69,21 +76,28 @@ df |> ggplot(aes(x=Fertilizante, y=Producao, color=Fertilizante)) +
 
 # ANOVA
 
-Como queremos verificar se existe alguma diferença entre os tratamentos, o que desejamos testar é: 
+Como queremos verificar se existe alguma diferença entre os tratamentos, utilizando a notação de testes de hipótese, o que desejamos testar pode ser representado da seguinte maneira: 
 $$H_0: \mu_{A} = \mu_{B} = \mu_{C} = \mu_{D}$$
-Ou seja, a hipótese nula dos dados é que todas as médias para os diferentes fertilizantes são iguais. Aplicando a anova: 
+Ou seja, a hipótese nula dos dados é que todas as médias de produção para os diferentes fertilizantes são iguais. Aplicando a anova: 
 
 ```{r}
 m <- aov(Producao ~ Fertilizante, data = df)
 summary(m) 
 ```
 
+A partir das informações fornecidas com a aplicação da ANOVA, foi encontrado como p-valor o resultado 7.66e-06. Trata-se de um valor bem menor ao nível de significância estabelecido para o teste, indicado que há evidência para rejeitar a hipótese nula. Considerando isso, a suspeita anterior de que haveria uma diferença entre as médias das produções para os diferentes tratamentos é confirmada pelo teste.
+
 # Pressupostos
 
-Primeiro, podemos ver como os resíduos se comportam.
+Em relação ao teste aplicado previamente, é importante comentar sobre as suposições realizadas para sua aplicação seja válida:
+  - Populações normalmente distribuídas;
+  - Populações tem mesma variância;
+  - Amostras são aleatórias e mutuamente independentes;
+  
+Já abordando sobre os resíduos, podemos observar como eles se comportam.
 
-O modelo que estamos considerando é: $$y_{ij} = \mu_i + \epsilon_{ij}$$
-Desse modo, o resíduo é definido por
+O modelo que estamos considerando diz que uma observação de uma produção para um dado tratamento é igual a média para aquele tratamento somado ao seu respectivo resíduo, como é mostrado a seguir: $$y_{ij} = \mu_i + \epsilon_{ij}$$
+Partindo disto, pode-se definir o resíduo como o valor da observação menor a média amostral do tratamento. A expressão é apresentada a seguir:
 $$e_{ij} = y_{ij} - \bar{y}_{i\cdot}$$
 
 ```{r}
@@ -92,18 +106,15 @@ dado <- data.frame(id=1:12, residuo=residuo)
 kable(dado)
 ```
 
+Na exposição acima é possível realizar uma observação inicial quanto aos resíduos encontrados pela ANOVA.
+
 ## Resíduo versus tratamento
 
 ```{r}
-plot(m, which=2, pch=19) 
+plot(m, which=5, pch=19) 
 ```
 
-Desejamos que os resíduos sejam bem comportandos, simétricos em torno de
-uma média (normal) e que tenha mesma variância dentre os três
-tratamentos.
-
-Logo, é esperado que não haja nenhum padrão a não ser um comportamento
-aleatório.
+O gráfico acima apresenta a relação entre os tratamentos e os valores dos resíduos. A partir dele, esperava-se observar que os valores para todos os tratamentos estivessem próximos de zero caso a hipótese nula fosse verdadeira.
 
 ## Resíduo versus valor ajustado
 
@@ -124,13 +135,13 @@ plot(m, which=1, pch=19)
 
 ## Normalidade dos resíduos
 
-Um pressuposto importante para a utilização da anova é a normalidade dos resíduos. Para isso é possível utilizar um gráfico qqplot. Se os dados seguirem a relação linear, muito provavelmente eles são normais. Analisando o gráfiico abaixo existem alguns valores que fogem um pouco da relação linear, porém fica dificil analisar.
+A normalidade dos resíduos é um pressuposto importante para o estudo das médias dos tratamentos utilizando a ANOVA. Para realizar uma análise referente a eles, pode-se utilizar um gráfico ggplot. Nele, para se observar a normalidade dos resíduos, os valores devem seguir uma relação linear e estarem próximos da reta presente no gráfico.
 
 ```{r}
 plot(m, which=2, pch = 19)
 ```
 
-É possível utilizar também um envelope, que demonstra a "faixa de normalidade". Como é possível observar, existem dados que fogem do envelope. Por isso um teste de normalidade nos resíduos deve ser aplicado. 
+Para auxiliar na análise, é possível utilizar o recurso de um envelope a ser desenhado no gráfico que irá indicar uma "faixa de normalidade". Os pontos que fugirem da faixa podem apontar para uma falha na normalidade.
 
 ```{r}
 library("car") # se necessário: install.packages("car")
@@ -151,18 +162,6 @@ shapiro.test(m$residuals)
 ```
 
 Com um nível de relevância p = 0.05, é possível observar que não temos evidências suficientes para rejeitar a hipótese nula, dessa forma podemos assumir que os dados são normais. O pressuposto para a normalidade dos resíduos é válido. 
-
-## Resíduo versus ordem de coleta dos dados
-
-É útil também verificar se há um padrão bem definido para verificar se o
-resíduo é aleatório através do gráfico de dispersão resíduo *versus*
-ordem de coleta.
-
-```{r}
-plot(residuals(m) ~ ID, main="Resíduo versus ordem de coleta", font.main=1,data=df)
-abline(h = 0, lty = 2)
-```
-
 
 # Testes para homogeneidade na variância
 
