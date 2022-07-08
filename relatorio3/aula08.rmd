@@ -33,7 +33,7 @@ A seguir é feita a leitura do conjunto de dados a ser utilizado na atividade. O
 
 Obs.: Temos dois caminhos de dados diferentes devido ao fato de um integrante do grupo ter feito o trabalho de um diretório criado no notebook, enquanto que o outro se trata do caminho do repositório clonado do GitHub. Caso dê erro em um dos caminhos, basta comentá-lo e descomentar o que não está selecionado.
 ```{r}
-#df <- read.csv("~/Downloads/dados_atividade1.xlsx - Planilha1.csv")
+df <- read.csv("~/Downloads/dados_atividade1.xlsx - Planilha1.csv")
 #head(df)
 ```
 
@@ -138,6 +138,8 @@ df |> group_by(Fertilizante) |>
 plot(m, which=1, pch=19)
 ```
 
+Analisando o gráfico é possível observar levemente que os resíduos estão distribuidos aleatoriamente e também que aparentemente a variância deles é parceida. Os pontos apresentam uma certa aleatoriedade nos dois "lados" de 0, um bom comportamento. 
+
 ## Normalidade dos resíduos
 
 A normalidade dos resíduos é um pressuposto importante para o estudo das médias dos tratamentos utilizando a ANOVA. Para realizar uma análise referente a eles, pode-se utilizar um gráfico ggplot. Nele, para se observar a normalidade dos resíduos, os valores devem seguir uma relação linear e estarem próximos da reta presente no gráfico.
@@ -187,7 +189,7 @@ summary(modelo)
 anova(modelo, test = "Chisq")
 ```
 
-Analisando os dados, pode-se notar que atingimos o resultado esperado haja vista que tivemos uma resposta semelhante quando comparado com a ANOVA
+Analisando os dados, pode-se notar que atingimos o resultado esperado haja vista que tivemos uma resposta semelhante quando comparado com a ANOVA. Observando o resultado, podemos assumir que não temos evidências para rejeitar a hipótese nula. Assim, assumimos que os fertilizantes não interferem nas pragas durante a produção. 
 
 # Testes para homogeneidade na variância
 
@@ -243,7 +245,17 @@ Observando todos os testes par a par acima, é possível observar que aparenteme
 bartlett.test(Producao ~ Fertilizante, data=df)
 ```
 
-O teste de barlett ainda confirma isso. 
+O teste de barlett ainda confirma isso.
+
+# Teste de tukey
+
+Feita a anova e visto que existem pelo menos dois tratamentos com diferença significativa, é possível aplicar um teste para encontrar onde vem a diferença. O gráfico plotado na análise descritiva sugere uma diferença entre quase todos os tratamentos, resta saber quais são significantes. 
+
+```{r}
+TukeyHSD(m)
+```
+
+Analisando o resultado do teste de tukey, é possível perceber diversas diferenças. Com um nível de signifcância de 5%, o fertilizante B apresentou diferença significativa para todos os outros fertilizantes. Nesse sentido, podemos que o tratamento B apresentou uma melhora na produção estatisticamente significativa. O inverso não pode ser dito para o tratamento C. Ele apresenta a menor média, mas não temos evidências suficientes para mostrar uma diferença com o tratamento D. 
 
 <!-- ------------------------------------------------------------- -->
 
