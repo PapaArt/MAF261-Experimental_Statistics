@@ -31,6 +31,7 @@ knitr::opts_chunk$set(echo = T, include = T, eval=T,
 
 A seguir é feita a leitura do conjunto de dados a ser utilizado na atividade. Os dados são referentes ao contexto de aplicação de fertilantes em produções e a possível presença de pragas. 
 
+Obs.: Temos dois caminhos de dados diferentes devido ao fato de um integrante do grupo ter feito o trabalho de um diretório criado no notebook, enquanto que o outro se trata do caminho do repositório clonado do GitHub. Caso dê erro em um dos caminhos, basta comentá-lo e descomentar o que não está selecionado.
 ```{r}
 #df <- read.csv("~/Downloads/dados_atividade1.xlsx - Planilha1.csv")
 #head(df)
@@ -75,18 +76,6 @@ df |> group_by(Fertilizante) |>
 df |> ggplot(aes(x=Fertilizante, y=Producao, color=Fertilizante)) + 
   geom_boxplot(outlier.shape=NA) +
   geom_jitter(width=0.2)
-```
-
-# ANOVA para dados binários
-## Regressão Logística
-```{r}
-modelo <- glm(Praga ~ Fertilizante, data = df, family = binomial(link = "logit"))
-summary(modelo)
-```
-
-## ANOVA
-```{r}
-anova(modelo, test = "Chisq")
 ```
 
 
@@ -166,6 +155,8 @@ qqPlot(m$residuals, pch=19, col.lines="darkred", id=F)
 
 ## Testando a normalidade dos resíduos
 
+O Teste de Shapiro-Wilk tem como objetivo avaliar se uma distribuição é semelhante a uma distribuição normal. A distribuição normal também pode ser chamada de gaussiana e sua forma assemelha-se a de um sino. Esse tipo de distribuição é muito importante, por ser frequentemente usada para modelar fenômenos naturais. Além disse, vale observar que para dizer que uma distribuição é normal, o valor p precisa ser maior do que 0.05.
+
 Para testar a normalidade é possível aplicar o teste de Shapiro-Wilks. As hipóteses do teste são: 
 
 $$H_{0} = \text{Testes seguem uma distribuição normal}\\
@@ -178,6 +169,25 @@ shapiro.test(m$residuals)
 ```
 
 Com um nível de relevância p = 0.05, é possível observar que não temos evidências suficientes para rejeitar a hipótese nula, dessa forma podemos assumir que os dados são normais. O pressuposto para a normalidade dos resíduos é válido. 
+
+# ANOVA para dados binários
+## Regressão Logística
+
+Geralmente a regressão logística é usada para ajudar a criar previsões precisas. É semelhante à regressão linear, exceto que, em vez de um resultado gráfico, a variável de destino é binária, o valor é 0 ou 1.
+
+Nesse caso, a regressão logística será usada para fazermos os dados da ANOVA de maneira binária, vale notar que além da regressão utilizada, quando aplicamos a ANOVA no nosso modelo usamos como teste "Chisq" que quer dizer "chi-squared", ou seja, nessa análise de dados utilizamos do teste qui-quadrado para validarmos nosso resultado.
+
+```{r}
+modelo <- glm(Praga ~ Fertilizante, data = df, family = binomial(link = "logit"))
+summary(modelo)
+```
+
+## ANOVA
+```{r}
+anova(modelo, test = "Chisq")
+```
+
+Analisando os dados, pode-se notar que atingimos o resultado esperado haja vista que tivemos uma resposta semelhante quando comparado com a ANOVA
 
 # Testes para homogeneidade na variância
 
