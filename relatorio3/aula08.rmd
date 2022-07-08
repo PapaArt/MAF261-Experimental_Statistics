@@ -1,20 +1,27 @@
 ---
 title: "Relatório 3 - Estatística"
-subtitle: "Fazendo algumas análises em R"
-date: "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Sumário"
-output: 
+author:
+- Artur Papa - 3886
+- Erian Alves - 3862
+- Guilherme Sergio - 3854
+date: '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Sumário'
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
   html_document:
-    toc: true # table of content true
-    toc_depth: 2  # upto three depths of headings (specified by #, ## and ###)
-    number_sections: true  ## if you want number sections at each table headerK
-    theme: cosmo  # many options for theme, this one is my favorite.
-    highlight: zenburn  # specifies the syntax highlighting style
-    #css: my.css   # you can add your custom css, should be in same folder
-editor_options: 
+    toc: yes
+    toc_depth: 2
+    number_sections: yes
+    theme: cosmo
+    highlight: zenburn
+subtitle: Fazendo algumas análises em R
+editor_options:
   chunk_output_type: console
-  markdown: 
+  markdown:
     wrap: 72
 ---
+
 
 ```{r setup opts_chunk, include=FALSE}
 # chunk options:
